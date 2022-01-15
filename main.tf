@@ -75,6 +75,7 @@ resource openstack_networking_secgroup_rule_v2 ingress_agents {
   security_group_id = openstack_networking_secgroup_v2.secgroup.id
 }
 
+/*
 # Define an Ingress policy for Puppet Master
 resource openstack_networking_secgroup_rule_v2 ingress_puppet_master {
   direction         = "ingress"
@@ -86,7 +87,7 @@ resource openstack_networking_secgroup_rule_v2 ingress_puppet_master {
   region            = var.ovh_region
   security_group_id = openstack_networking_secgroup_v2.secgroup.id
 }
-
+*/
 /* NOT REQUESTED AS IT IS CREATED BY DEFAULT IN SECGROUP
 # Define an Egress policy for ipv4
 resource openstack_networking_secgroup_rule_v2 bbb_egress_ipv4 {
@@ -109,7 +110,7 @@ data openstack_networking_network_v2 network_ext_net {
   name   = "Ext-Net"
   region = var.ovh_region
 }
-
+/*
 # Create Ext-Net network port for Puppet Master
 resource openstack_networking_port_v2 puppet_master_server_port {
   name                = "Puppet_Master_server_port"
@@ -200,7 +201,7 @@ resource null_resource puppet_master_install {
     ]
   }
 }
-
+*/
 # Create Ext-Net network port
 resource openstack_networking_port_v2 server_port {
   name                = "Icinga2_server_port"
