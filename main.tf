@@ -307,8 +307,12 @@ resource null_resource install_icinga2 {
     }
 
     inline = [
+      # Set hostname
       "sudo hostnamectl set-hostname ${var.fqdn}.${var.dns_domain}",
+      # Update distribution
       "sudo apt-get -y update && sudo apt-get -y upgrade",
+      # Install GIT as requirement
+      " sudo apt-get install -y git",
 
       /*
       # Install Puppet 7 Agent node
