@@ -302,7 +302,7 @@ resource null_resource install_icinga2 {
   provisioner "remote-exec" {
     connection {
       type     = "ssh"
-      user     = "ubuntu"
+      user     = "debian"
       host     =  openstack_compute_instance_v2.server[0].access_ip_v4
     }
 
@@ -460,7 +460,7 @@ resource null_resource install_icinga2 {
       "sudo install -d -o icingadirector -g icingaweb2 -m 0750 /var/lib/icingadirector",
       "sudo cp /usr/share/icingaweb2/modules/director/contrib/systemd/icinga-director.service /etc/systemd/system/",
       "sudo systemctl daemon-reload",
-      "sudo systemctl enable icinga-director.service && sudo systemctl start icinga-director.service"
+      "sudo systemctl enable icinga-director.service && sudo systemctl start icinga-director.service",
 
       ### Install vSphere module
       # Install requirements
@@ -484,7 +484,7 @@ resource null_resource install_icinga2 {
       "sudo cp /usr/share/icingaweb2/modules/vspheredb/contrib/systemd/icinga-vspheredb.service /etc/systemd/system/",
       "sudo sed -i 's/User=.*/User=www-data/g' /etc/systemd/system/icinga-vspheredb.service",
       "sudo systemctl daemon-reload",
-      "sudo systemctl enable icinga-vspheredb.service && sudo systemctl start icinga-vspheredb.service"
+      "sudo systemctl enable icinga-vspheredb.service && sudo systemctl start icinga-vspheredb.service",
     ]
   }
 }

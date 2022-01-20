@@ -1,3 +1,7 @@
+### To stop gitsync this file, run the following lines :
+# git rm -r --cached terraform.tfvars
+# git add .
+# git commit -m "fixing .gitignore"
 ovh_region = "GRA11"
 ovh_application_key = "xxx"
 ovh_application_secret = "yyy" 
