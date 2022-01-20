@@ -1,5 +1,5 @@
 ### To stop gitsync this file, run the following lines :
-# git rm -r --cached terraform.tfvars
+# git update-index --skip-worktree terraform.tfvars
 # git commit -m "Unsync Terraform variables file terraform.tfvars"
 ovh_region = "GRA11"
 ovh_application_key = "xxx"
@@ -10,7 +10,7 @@ dns_domain = "domain.tld"
 puppet_master_fqdn = "pm-srv.fdd"
 image = "Ubuntu 20.04"
 flavor = "b2-7"
-letsencrypt_email = "email@yourdomain.tld"
+letsencrypt_email = "youremail@yourdomain.tld"
 keypair_name = "icinga2"
 public_key = "~/.ssh/id_rsa.pub"
 mariadb_root_pwd = "password_to_define"
