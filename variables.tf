@@ -23,10 +23,10 @@ variable dns_domain {
   description = "OVHcloud DNS domain"
 }
 
-variable puppet_master_fqdn {
-  type        = string
-  description = "Puppet Master subdomain (without OVHcloud DNS domain)"
-}
+# variable puppet_master_fqdn {
+#   type        = string
+#   description = "Puppet Master subdomain (without OVHcloud DNS domain)"
+# }
 
 variable fqdn {
   type        = string
