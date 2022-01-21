@@ -433,7 +433,7 @@ resource null_resource install_icinga2 {
       # Install required modules
       "sudo git clone 'https://github.com/Icinga/icingaweb2-module-ipl' '/usr/share/icingaweb2/modules/ipl' --branch v0.5.0",
       "sudo -u www-data icingacli module enable ipl",
-      "sudo git clone 'https://github.com/Icinga/icingaweb2-module-incubator' '/usr/share/icingaweb2/modules/incubator' --branch v0.6.0",
+      "sudo git clone 'https://github.com/Icinga/icingaweb2-module-incubator' '/usr/share/icingaweb2/modules/incubator' --branch v0.12.0",
       "sudo -u www-data icingacli module enable incubator",
       "sudo git clone 'https://github.com/Icinga/icingaweb2-module-reactbundle' '/usr/share/icingaweb2/modules/reactbundle' --branch v0.9.0",
       "sudo -u www-data icingacli module enable reactbundle",
@@ -445,7 +445,7 @@ resource null_resource install_icinga2 {
       "printf '\\n[Director DB]\\ntype =     \"db\"\\ndb =       \"mysql\"\\nhost =     \"localhost\"\\ndbname =   \"director\"\\nusername = \"director\"\\npassword = \"%s\"\\ncharset =  \"utf8\"\\n' '${var.mariadb_director_pwd}' | sudo -u www-data tee -a /etc/icingaweb2/resources.ini > /dev/null",
       "sudo git clone 'https://github.com/icinga/icingaweb2-module-director' '/usr/share/icingaweb2/modules/director' --branch v1.8.0",
       "sudo -u www-data mkdir -p /etc/icingaweb2/modules/director/",
-      # Create dirctor/config.ini
+      # Create director/config.ini
       "printf '[db]\\nresource = \"Director DB\"\\n' | sudo -u www-data tee /etc/icingaweb2/modules/director/config.ini > /dev/null",
       # Create API user director
       "printf '\\nobject ApiUser \"director\" {\\n  password = \"%s\"\\n  permissions = [ \"*\" ]\\n}\\n' '${var.icinga_director_api_pwd}' | sudo tee -a /etc/icinga2/conf.d/api-users.conf > /dev/null",
