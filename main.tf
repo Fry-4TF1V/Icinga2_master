@@ -6,13 +6,6 @@ provider "ovh" {
   consumer_key       = var.ovh_consumer_key
 }
 
-# resource random_password bbb_server_secret {
-#   length  = 64
-#   special = false
-#   upper   = false
-#   number  = true
-# }
-
 # Import SSH Public Key
 resource openstack_compute_keypair_v2 keypair {
   name       = var.keypair_name
@@ -75,133 +68,12 @@ resource openstack_networking_secgroup_rule_v2 ingress_agents {
   security_group_id = openstack_networking_secgroup_v2.secgroup.id
 }
 
-/*
-# Define an Ingress policy for Puppet Master
-resource openstack_networking_secgroup_rule_v2 ingress_puppet_master {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = "tcp"
-  port_range_min    = 8140
-  port_range_max    = 8140
-  remote_ip_prefix  = "0.0.0.0/0"
-  region            = var.ovh_region
-  security_group_id = openstack_networking_secgroup_v2.secgroup.id
-}
-*/
-/* NOT REQUESTED AS IT IS CREATED BY DEFAULT IN SECGROUP
-# Define an Egress policy for ipv4
-resource openstack_networking_secgroup_rule_v2 bbb_egress_ipv4 {
-  direction         = "egress"
-  ethertype         = "IPv4"
-  region            = var.ovh_region
-  security_group_id = openstack_networking_secgroup_v2.bbb_secgroup.id
-}
-
-# Define an Egress policy for ipv6
-resource openstack_networking_secgroup_rule_v2 bbb_egress_ipv6 {
-  direction         = "egress"
-  ethertype         = "IPv6"
-  region            = var.ovh_region
-  security_group_id = openstack_networking_secgroup_v2.bbb_secgroup.id
-}*/
-
 # Get Ext-Net network ID
 data openstack_networking_network_v2 network_ext_net {
   name   = "Ext-Net"
   region = var.ovh_region
 }
-/*
-# Create Ext-Net network port for Puppet Master
-resource openstack_networking_port_v2 puppet_master_server_port {
-  name                = "Puppet_Master_server_port"
-  network_id          = data.openstack_networking_network_v2.network_ext_net.id
-  admin_state_up      = "true"
-  region              = var.ovh_region
-  security_group_ids  = [openstack_networking_secgroup_v2.secgroup.id]
-}
 
-locals {
-  # Retreive IP v4 of the created port
-  puppet_master_ipv4 = [
-    for ip in openstack_networking_port_v2.puppet_master_server_port.all_fixed_ips :
-      ip
-      if length(replace(ip, "/[[:alnum:]]+:[^,]+/", "")) > 0
-    ][0]
-
-  # Retreive IP v6 of the created port
-  puppet_master_ipv6 = [
-    for ip in openstack_networking_port_v2.puppet_master_server_port.all_fixed_ips :
-      ip
-      if length(replace(ip, "/[[:alnum:]]+\\.[^,]+/", "")) > 0
-    ][0]
-}
-
-# Create an A (ipv4) record inside the DNS zone for Puppet Master
-resource ovh_domain_zone_record puppet_master_server_record_A {
-  zone = var.dns_domain
-  subdomain = var.puppet_master_fqdn
-  fieldtype = "A"
-  ttl = "60"
-  target = local.puppet_master_ipv4
-}
-
-# Create an AAAA (ipv6) record inside the DNS zone for Puppet Master
-resource ovh_domain_zone_record puppet_master_server_record_AAAA {
-  zone = var.dns_domain
-  subdomain = var.puppet_master_fqdn
-  fieldtype = "AAAA"
-  ttl = "60"
-  target = local.puppet_master_ipv6
-}
-
-# Create a Puppet Master server on PCI
-resource openstack_compute_instance_v2 puppet_master_server {
-  count            = 1
-  region           = var.ovh_region
-  name             = "Puppet Master"
-  image_name       = var.image
-  flavor_name      = var.flavor
-  key_pair         = var.keypair_name
-  network {
-    port           = openstack_networking_port_v2.puppet_master_server_port.id
-    access_network = true
-  }
-  depends_on = [
-    openstack_compute_keypair_v2.keypair,
-    ovh_domain_zone_record.puppet_master_server_record_A,
-    ovh_domain_zone_record.puppet_master_server_record_AAAA,
-    openstack_networking_secgroup_rule_v2.ingress_ssh,
-    openstack_networking_secgroup_rule_v2.ingress_puppet_master,
-  ]
-}
-
-# Run the Puppet Master install script inside the instance
-resource null_resource puppet_master_install {
-  triggers = {
-     server_id =  openstack_compute_instance_v2.puppet_master_server[0].id
-  }
-
-  provisioner "remote-exec" {
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      host     =  openstack_compute_instance_v2.puppet_master_server[0].access_ip_v4
-    }
-
-    inline = [
-      "sudo apt-get -y update && sudo apt-get -y upgrade",
-      "sudo timedatectl set-timezone Europe/Paris",
-      "sudo hostnamectl set-hostname ${var.puppet_master_fqdn}.${var.dns_domain}",
-      "sudo sed -i '$a${local.puppet_master_ipv4}   ${var.puppet_master_fqdn}.${var.dns_domain} ${var.puppet_master_fqdn} puppet' /etc/hosts",
-      # Install Puppet 7 Master node
-      "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; sudo wget -O /tmp/puppet6-release-$${DIST}.deb https://apt.puppetlabs.com/puppet6-release-$${DIST}.deb && sudo dpkg -i /tmp/puppet6-release-$${DIST}.deb",
-      "sudo apt update && sudo apt install puppetserver -y",
-      "sudo systemctl start puppetserver",
-      "sudo systemctl enable puppetserver",
-    ]
-  }
-}
-*/
 # Create Ext-Net network port
 resource openstack_networking_port_v2 server_port {
   name                = "Icinga2_server_port"
@@ -295,10 +167,6 @@ resource null_resource install_icinga2 {
      server_id =  openstack_compute_instance_v2.server[0].id
   }
 
-  # depends_on = [
-  #   null_resource.puppet_master_install,
-  # ]
-
   provisioner "remote-exec" {
     connection {
       type     = "ssh"
@@ -312,20 +180,7 @@ resource null_resource install_icinga2 {
       # Update distribution
       "sudo apt-get -y update && sudo apt-get -y upgrade",
       # Install GIT as requirement
-      " sudo apt-get install -y git",
-
-      /*
-      # Install Puppet 7 Agent node
-      "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; sudo wget -O /tmp/puppet6-release-$${DIST}.deb https://apt.puppetlabs.com/puppet6-release-$${DIST}.deb && sudo dpkg -i /tmp/puppet6-release-$${DIST}.deb",
-      "sudo apt update && sudo apt install puppet-agent -y",
-      # Configure Puppet 7 Agent node
-      "sudo sed -i '$a [main]' /etc/puppetlabs/puppet/puppet.conf",
-      "sudo sed -i '$a certname = ${var.fqdn}.${var.dns_domain}' /etc/puppetlabs/puppet/puppet.conf",
-      "sudo sed -i '$a server = ${var.puppet_master_fqdn}.${var.dns_domain}' /etc/puppetlabs/puppet/puppet.conf",
-      "sudo systemctl start puppet",
-      "sudo systemctl enable puppet",
-      "sleep 10",
-      */
+      "sudo apt-get install -y git",
 
       ### Install Icinga2
       # Install required packages
@@ -333,14 +188,38 @@ resource null_resource install_icinga2 {
       # Install required repository key
       "sudo wget -O - https://packages.icinga.com/icinga.key | sudo apt-key add -",
       # Install required repository
-      "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; echo \"deb https://packages.icinga.com/ubuntu icinga-$${DIST} main\" | sudo tee -a /etc/apt/sources.list.d/$${DIST}-icinga.list > /dev/null",
-      "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; echo \"deb-src https://packages.icinga.com/ubuntu icinga-$${DIST} main\" | sudo tee -a /etc/apt/sources.list.d/$${DIST}-icinga.list > /dev/null",
+
+      # DEBIAN
+      "sudo DIST=$(awk -F\"[)(]+\" '/VERSION=/ {print $2}' /etc/os-release); echo \"deb https://packages.icinga.com/debian icinga-$${DIST} main\" > /etc/apt/sources.list.d/$${DIST}-icinga.list",
+      "sudo echo \"deb-src https://packages.icinga.com/debian icinga-$${DIST} main\" >> /etc/apt/sources.list.d/$${DIST}-icinga.list",
+      # UBUNTU
+      # "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; echo \"deb https://packages.icinga.com/ubuntu icinga-$${DIST} main\" | sudo tee -a /etc/apt/sources.list.d/$${DIST}-icinga.list > /dev/null",
+      # "sudo . /etc/os-release; if [ ! -z $${UBUNTU_CODENAME+x} ]; then DIST=\"$${UBUNTU_CODENAME}\"; else DIST=\"$(lsb_release -cs)\"; fi; echo \"deb-src https://packages.icinga.com/ubuntu icinga-$${DIST} main\" | sudo tee -a /etc/apt/sources.list.d/$${DIST}-icinga.list > /dev/null",
+
       # Install icinga2
       "sudo apt-get -y update && sudo apt-get install -y icinga2",
       # Install additional monitoring plugins for Icinga2
       "sudo apt-get install -y monitoring-plugins",
       # Start Icinga2
       "sudo systemctl enable icinga2 && sudo systemctl restart icinga2",
+    ]
+  }
+}
+
+# Run the Icingaweb2 install script inside the instance
+resource null_resource install_icingaweb2 {
+  triggers = {
+      id = null_resource.install_icinga2.id
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type     = "ssh"
+      user     = "debian"
+      host     =  openstack_compute_instance_v2.server[0].access_ip_v4
+    }
+
+    inline = [
 
       ### Install Icingaweb2
       # Install MariaDB
@@ -400,7 +279,7 @@ resource null_resource install_icinga2 {
       "sudo icinga2 feature enable command && sudo systemctl restart icinga2",
       
       # "sudo icingacli setup token create",
-      
+
       # Create Icingaweb2 root directory
       "sudo icingacli setup config directory",
       # Change directory owner to www-data and group to icingaweb2
@@ -428,6 +307,24 @@ resource null_resource install_icinga2 {
       # Define this host as Icinga2 master
       "sudo icinga2 node setup --master",
       # "sudo chown -R www-data:icingaweb2 /usr/share/icingaweb2",
+    ]
+  }
+}
+
+# # Run the Icinga2 Director install script inside the instance
+resource null_resource install_icinga2_director {
+  # triggers = {
+  #     id = null_resource.install_icingaweb2.id
+  # }
+
+  provisioner "remote-exec" {
+    connection {
+      type     = "ssh"
+      user     = "debian"
+      host     =  openstack_compute_instance_v2.server[0].access_ip_v4
+    }
+
+    inline = [
 
       ### Install Director
       # Install required modules
@@ -443,7 +340,7 @@ resource null_resource install_icinga2 {
       "sudo mysql -p'${var.mariadb_root_pwd}' -e \"GRANT ALL ON director.* TO 'director'@'localhost';\"",
       # Add Director config in resources.ini
       "printf '\\n[Director DB]\\ntype =     \"db\"\\ndb =       \"mysql\"\\nhost =     \"localhost\"\\ndbname =   \"director\"\\nusername = \"director\"\\npassword = \"%s\"\\ncharset =  \"utf8\"\\n' '${var.mariadb_director_pwd}' | sudo -u www-data tee -a /etc/icingaweb2/resources.ini > /dev/null",
-      "sudo git clone 'https://github.com/icinga/icingaweb2-module-director' '/usr/share/icingaweb2/modules/director' --branch v1.8.0",
+      "sudo git clone 'https://github.com/icinga/icingaweb2-module-director' '/usr/share/icingaweb2/modules/director' --branch v1.8.1",
       "sudo -u www-data mkdir -p /etc/icingaweb2/modules/director/",
       # Create director/config.ini
       "printf '[db]\\nresource = \"Director DB\"\\n' | sudo -u www-data tee /etc/icingaweb2/modules/director/config.ini > /dev/null",
@@ -455,66 +352,109 @@ resource null_resource install_icinga2 {
       "printf '[config]\\nendpoint = ${var.fqdn}.${var.dns_domain}\\n; host = 127.0.0.1\\n; port = 5665\\nusername = director\\npassword = %s\\n' '${var.icinga_director_api_pwd}' | sudo -u www-data tee /etc/icingaweb2/modules/director/kickstart.ini > /dev/null",
       # Enable Director
       "sudo -u www-data icingacli module enable director",
-      "sudo -u www-data icingacli director kickstart run",
-      "sudo -u www-data icingacli director migration run --verbose",
+
       "sudo -u www-data icingacli director migration pending --verbose",
+      "sudo -u www-data icingacli director migration run --verbose",
+      "sudo -u www-data icingacli director kickstart required --verbose",
+      "sudo -u www-data icingacli director kickstart run",
+      # "sudo -u www-data icingacli director migration run --verbose",
+      # "sudo -u www-data icingacli director migration pending --verbose",
       "sudo -u www-data icingacli director config deploy",
+      # Restart Icinga2
+      "sudo systemctl restart icinga2",
       # Enable Director daemon
       "sudo useradd -r -g icingaweb2 -d /var/lib/icingadirector -s /bin/false icingadirector",
       "sudo install -d -o icingadirector -g icingaweb2 -m 0750 /var/lib/icingadirector",
       "sudo cp /usr/share/icingaweb2/modules/director/contrib/systemd/icinga-director.service /etc/systemd/system/",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable icinga-director.service && sudo systemctl start icinga-director.service",
+    ]
+  }
+}
+
+# # Run the Icinga2 vSphere module install script inside the instance
+resource null_resource install_icinga2_vsphere {
+  # triggers = {
+  #   id = null_resource.install_icinga2_director.id
+  # }
+
+  provisioner "remote-exec" {
+    connection {
+      type     = "ssh"
+      user     = "debian"
+      host     =  openstack_compute_instance_v2.server[0].access_ip_v4
+    }
+
+    inline = [
 
       ### Install vSphere module
       # Install requirements
       "sudo apt-get install -y php-soap",
-      # Install module
-      "sudo git clone 'https://github.com/Icinga/icingaweb2-module-vspheredb' '/usr/share/icingaweb2/modules/vspheredb'",
+      # # Install module
+      # "sudo git clone 'https://github.com/Icinga/icingaweb2-module-vspheredb' '/usr/share/icingaweb2/modules/vspheredb'",
       # Create database for vSphereDB
-      "sudo mysql -p'${var.mariadb_root_pwd}' -e \"CREATE DATABASE vspheredb;\"",
+      "sudo mysql -p'${var.mariadb_root_pwd}' -e \"CREATE DATABASE vspheredb CHARACTER SET 'utf8mb4' COLLATE utf8mb4_bin;\"",
       "sudo mysql -p'${var.mariadb_root_pwd}' -e \"CREATE USER 'vspheredb'@'localhost' IDENTIFIED BY '${var.mariadb_vspheredb_pwd}';\"",
       "sudo mysql -p'${var.mariadb_root_pwd}' -e \"GRANT ALL ON vspheredb.* TO 'vspheredb'@'localhost';\"",
       # Import vSphereDB schema
       "sudo mysql -p'${var.mariadb_root_pwd}' vspheredb < /usr/share/icingaweb2/modules/vspheredb/schema/mysql.sql",
       # Add resource in resources.ini
       "printf '\\n[vSphereDB]\\ntype     = \"db\"\\ndb       = \"mysql\"\\nhost     = \"localhost\"\\n; port   = 3306\\ndbname   = \"vspheredb\"\\nusername = \"vspheredb\"\\npassword = \"%s\"\\ncharset  = \"utf8mb4\"\\n' '${var.mariadb_vspheredb_pwd}' | sudo -u www-data tee -a /etc/icingaweb2/resources.ini > /dev/null",
-      # Create file config.ini
-      "sudo -u www-data mkdir -p /etc/icingaweb2/modules/vspheredb/",
-      "printf '[db]\\nresource = \"vSphereDB\"\\n' | sudo -u www-data tee /etc/icingaweb2/modules/vspheredb/config.ini > /dev/null",
-      # Enable vSphereDB
-      "sudo -u www-data icingacli module enable vspheredb",
-      # Enable vSphereDB daemon
-      "sudo cp /usr/share/icingaweb2/modules/vspheredb/contrib/systemd/icinga-vspheredb.service /etc/systemd/system/",
-      "sudo sed -i 's/User=.*/User=www-data/g' /etc/systemd/system/icinga-vspheredb.service",
+      
+      "sudo getent passwd \"icingavspheredb\" > /dev/null || sudo useradd -r -g \"icingaweb2\" -d /var/lib/icingavspheredb -s /bin/false icingavspheredb",
+      "sudo install -d -o \"icingavspheredb\" -g \"icingaweb2\" -m 0750 /var/lib/icingavspheredb",
+      "sudo install -d -m 0755 \"/usr/share/icingaweb2/modules/vspheredb\"",
+
+      "sudo test -d \"/usr/share/icingaweb2/modules/vspheredb_TMP\" && sudo rm -rf \/usr/share/icingaweb2/modules/vspheredb_TMP\"",
+      "sudo test -d \"/usr/share/icingaweb2/modules/vspheredb_BACKUP\" && sudo rm -rf \"/usr/share/icingaweb2/modules/vspheredb_BACKUP\"",
+      "sudo install -d -o root -g root -m 0755 \"/usr/share/icingaweb2/modules/vspheredb_TMP\"",
+      "sudo wget -q -O - \"https://github.com/icinga/icingaweb2-module-vspheredb/archive/refs/tags/v1.2.1.tar.gz\" | sudo tar xfz - -C \"/usr/share/icingaweb2/modules/vspheredb_TMP\" --strip-components 1 && sudo mv \"/usr/share/icingaweb2/modules/vspheredb\" \"/usr/share/icingaweb2/modules/vspheredb_BACKUP\" && sudo mv \"/usr/share/icingaweb2/modules/vspheredb_TMP\" \"/usr/share/icingaweb2/modules/vspheredb\" && sudo rm -rf \"/usr/share/icingaweb2/modules/vspheredb_BACKUP\"",
+
+      "echo \"d /run/icinga-vspheredb 0755 icingavspheredb icingaweb2 -\" | sudo tee \"/etc/tmpfiles.d/icinga-vspheredb.conf\"",
+      "sudo cp -f \"/usr/share/icingaweb2/modules/vspheredb/contrib/systemd/icinga-vspheredb.service\" /etc/systemd/system/",
+      "sudo systemd-tmpfiles --create \"/etc/tmpfiles.d/icinga-vspheredb.conf\"",
+
+      "sudo icingacli module enable vspheredb",
       "sudo systemctl daemon-reload",
-      "sudo systemctl enable icinga-vspheredb.service && sudo systemctl start icinga-vspheredb.service",
+      "sudo systemctl enable icinga-vspheredb.service",
+      "sudo systemctl restart icinga-vspheredb.service",
+
+      # Install postfix for email notifications
+      # "sudo DEBIAN_FRONTEND=noninteractive apt-get install postfix -y",
+      "echo \"postfix postfix/mailname string ${var.dns_domain}\" | sudo debconf-set-selections";
+      "echo \"postfix postfix/main_mailer_type string 'Internet Site'\" | sudo debconf-set-selections";
+      "sudo apt-get install postfix -y";
+      # Configure relay host
+      "sudo sed -i 's/relayhost =.*/relayhost = ${var.smtp_relayhost}/g' /etc/postfix/main.cf",
+
+      "sudo sed -i 's/smtp_tls_security_level.*/smtp_tls_security_level=encrypt/g' /etc/postfix/main.cf",
+      "printf 'smtp_tls_wrappermode = yes' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+
+      # Activate SASL Support on Postfix
+      "printf '\\n#Activate SASL support to send mails' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+      "printf '\\nsmtp_sasl_auth_enable = yes' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+      "printf '\\nsmtp_sasl_security_options = noanonymous' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+      "printf '\\nsmtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+      "printf '\\nsmtp_always_send_ehlo = yes' | sudo tee -a /etc/postfix/main.cf  > /dev/null",
+      
+      # Define login and password for relay host
+      "printf '${var.smtp_relayhost} ${var.smtp_relayhost_login}:${var.smtp_relayhost_pwd}' | sudo tee -a /etc/postfix/sasl_passwd  > /dev/null",
+      "sudo chmod 600 /etc/postfix/sasl_passwd";
+      "sudo postmap /etc/postfix/sasl_passwd";
+
+      "sudo systemctl restart postfix";
+
+
+      # # Create file config.ini
+      # "sudo -u www-data mkdir -p /etc/icingaweb2/modules/vspheredb/",
+      # "printf '[db]\\nresource = \"vSphereDB\"\\n' | sudo -u www-data tee /etc/icingaweb2/modules/vspheredb/config.ini > /dev/null",
+      # # Enable vSphereDB
+      # "sudo -u www-data icingacli module enable vspheredb",
+      # # Enable vSphereDB daemon
+      # "sudo cp /usr/share/icingaweb2/modules/vspheredb/contrib/systemd/icinga-vspheredb.service /etc/systemd/system/",
+      # "sudo sed -i 's/User=.*/User=www-data/g' /etc/systemd/system/icinga-vspheredb.service",
+      # "sudo systemctl daemon-reload",
+      # "sudo systemctl enable icinga-vspheredb.service && sudo systemctl start icinga-vspheredb.service",
     ]
   }
 }
-
-# Sign the Puppet Agent certificate
-/*
-resource null_resource puppet_master_sign {
-  triggers = {
-     server_id =  openstack_compute_instance_v2.puppet_master_server[0].id
-  }
-
-  depends_on = [
-    null_resource.install_icinga2,
-  ]
-
-  provisioner "remote-exec" {
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      host     =  openstack_compute_instance_v2.puppet_master_server[0].access_ip_v4
-    }
-
-    inline = [
-      "sudo /opt/puppetlabs/bin/puppetserver ca sign --all",
-      "puppet module install icinga-icinga2 --version 3.1.2",
-    ]
-  }
-}
-*/

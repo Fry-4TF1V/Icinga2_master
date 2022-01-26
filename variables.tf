@@ -97,3 +97,18 @@ variable icinga_director_api_pwd{
   type        = string
   description = "Icinga Director API password"
 }
+
+variable smtp_relayhost{
+  type        = string
+  description = "SMTP relayhost address"
+}
+
+variable smtp_relayhost_login{
+  type        = string
+  description = "SMTP relayhost authentication login"
+}
+
+variable smtp_relayhost_pwd{
+  type        = string
+  description = "SMTP relayhost authentication password"
+}
