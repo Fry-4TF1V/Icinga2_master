@@ -313,9 +313,9 @@ resource null_resource install_icingaweb2 {
 
 # # Run the Icinga2 Director install script inside the instance
 resource null_resource install_icinga2_director {
-  # triggers = {
-  #     id = null_resource.install_icingaweb2.id
-  # }
+  triggers = {
+      id = null_resource.install_icingaweb2.id
+  }
 
   provisioner "remote-exec" {
     connection {
@@ -374,9 +374,9 @@ resource null_resource install_icinga2_director {
 
 # # Run the Icinga2 vSphere module install script inside the instance
 resource null_resource install_icinga2_vsphere {
-  # triggers = {
-  #   id = null_resource.install_icinga2_director.id
-  # }
+  triggers = {
+    id = null_resource.install_icinga2_director.id
+  }
 
   provisioner "remote-exec" {
     connection {
