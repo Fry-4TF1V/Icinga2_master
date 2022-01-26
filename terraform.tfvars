@@ -21,3 +21,6 @@ mariadb_vspheredb_pwd = "password_to_define"
 icingaadmin_pwd = "password_to_define"
 icingaweb2_api_pwd = "password_to_define"
 icinga_director_api_pwd = "password_to_define"
+smtp_relayhost = "your.relayhost.tld:587"
+smtp_relayhost_login = "your_relayhost_login"   # Usually an email address
+smtp_relayhost_pwd = "your_relayhost_password"
